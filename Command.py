@@ -1,3 +1,5 @@
+import json
+
 class Command(object):
     # list of commands
     
@@ -17,3 +19,9 @@ class Command(object):
 
     # bidirectional commands
     LOGOUT="logout"
+
+    def create(**kwarg):
+        if 'commande' not in kwarg:
+            return False
+
+        return json.dumps(kwarg)

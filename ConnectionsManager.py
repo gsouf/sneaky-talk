@@ -40,64 +40,55 @@ class ClientConnection(threading.Thread):
 
         # looking if it is a command
         # all commands begin by a slash
-        if decodedData.startswith("/"):
-
-            # searching for : /command[ ]content
-            #                          ^
-            spaceIndex=decodedData.find(" ")
-
-            #if no space it means that there is no content
-            if(-1 == spaceIndex):
-                command=decodedData.lstrip('/')
-                content=""
+        try:
+            decodedJson=json.loads(decodedData)
+            
+            if 'command' in decodedJson:
+                command=decodedJson['command']
+                self.routeCommand(command,decodedJson)
             else:
-                command=decodedData.lstrip('/')[:spaceIndex-1]
-                content=decodedData[spaceIndex+1:].lstrip(" ")
-
-            self.routeCommand(command,content)
+                print("no command : "+decodedJson)
+            
+        except ValueError:
+            print("not json")
 
     # analyse the given command to make the associated action
     def routeCommand(self,command="",content=""):
         
-        # /say -[idReceiver] [message]
-        #  => he sends a [message] to [idReceiver]
+        # SAY
+        # @param : idreceiver
+        # @param : message
         if command==Command.SAY:
             
-            if "-"==content[0:1]:
-                # searchong for "/say -idReceiver[ ]message"
-                #                                 ^
-                spaceIndexArg=content.find(" ")
-               
-                #-1 error (no space=>something is missing)
-                # 0 impossible (dash position)
-                # 1 error (number expected)
-                # so we only check >1
-                if(spaceIndexArg>1):
-                    receiver=content[1:spaceIndexArg]
-                    if receiver.isdigit():
-                        message=content[spaceIndexArg+1:]
-                        self.sayTo(idReceiver=receiver,message=message)
+            if 'idreceiver' in content:
+                if type(content['idreceiver'] == int):
+                    if 'message' in content:
+                        if type(content['message'] == str):
+                            receiver=content['idreceiver']
+                            message=content['message']
+                            self.sayTo(idReceiver=receiver,message=message)
+                        
 
-        # /list
-        # he asks to list the users logged
+        # LIST
         elif command==Command.LIST:
             self.sendList()
 
-        # /setname
-        # he asks to change his pseudo
+        # SETNAME
+        # @param : name
         elif command==Command.SETNAME:
-            if len(content)>0:
-                name=content
-                self.setName(name)
-        # /logout
+            if 'name' in content:
+                if type(content['name'] == str):
+                    name=content['name']
+                    self.setName(name)
+        # LOGOUT
         elif command==Command.LOGOUT:
             self.logout()
-        # /setavailability
+        # SETAVAILABILITY
         elif command==Command.SETAVAILABILITY:
-            if(int(content)!=0 and int(content)!=1):
-                content=2
-            self.availability=content
-            self.sendRefresh()
+            if 'availability' in content:
+                if type(content['availability']) == int:
+                    self.availability=content['availability']
+                    self.sendRefresh()
    
 
     # say something to someone
@@ -119,16 +110,15 @@ class ClientConnection(threading.Thread):
     # == a [message] is sent by [idSender]
     # == if id sender is not set or if = 0 this means that the sender is the server
     def sendMessage(self,message,senderId):
-        data="/"+Command.WRITE+" -"+str(senderId)+" "+message
-        print("@"+str(self.id)+" "+data)
-        self.socket.sendall(data.encode('utf-8'))
+        message=Command.create(command=Command.WRITE,senderid=str(senderId),content=message)
+        print("@"+str(self.id)+" "+message)
+        self.socket.sendall(message.encode('utf-8'))
     #
     # /userslist [jsonized users] 
     # == send a json representation of the users logged in
     def sendList(self):
-        data = "/"+Command.USERLIST+" "
-        data+= ConnectionsManager.getJsonList()
-        self.socket.sendall(data.encode('utf-8'))
+        message=Command.create(command=Command.USERLIST,users=ConnectionsManager.getJsonList())
+        self.socket.sendall(message.encode('utf-8'))
     #
     # will change the name call sendRefresh for broadcasting the new name
     #
@@ -139,7 +129,8 @@ class ClientConnection(threading.Thread):
     # /refresh [jsonized user]
     # == will broadcast the public properties of this user
     def sendRefresh(self):
-        ConnectionsManager.broadcast("/"+Command.REFRESH+" "+json.dumps(self.publicRepresentation()))
+        message=Command.create(command=Command.REFRESH,user=self.publicRepresentation())
+        ConnectionsManager.broadcast(message)
     #
     #
     # /logout
@@ -191,7 +182,8 @@ class ConnectionsManager(object):
             # close the socket listening
             client.socket.close()
             # broadcast the disconnexion
-            ConnectionsManager.broadcast("/"+Command.LOGOUT+" "+str(client.id))
+            message=Command.create(command=Command.LOGOUT,id=str(client.id))
+            ConnectionsManager.broadcast(message)
 
             print("disconnection of "+repr(client.address))
             print(ConnectionsManager.clientSize())
