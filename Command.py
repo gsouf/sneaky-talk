@@ -21,7 +21,7 @@ class Command(object):
     LOGOUT="logout"
 
     def create(**kwarg):
-        if 'commande' not in kwarg:
+        if 'command' not in kwarg:
             return False
 
         return json.dumps(kwarg)
