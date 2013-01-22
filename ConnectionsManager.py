@@ -210,7 +210,15 @@ class ConnectionsManager(object):
                 clientlist.append(client.publicRepresentation())
         return json.dumps(clientlist,separators=(',',':'))
 
-    #send a messager to all of the clients
+    #broadcast a message
     def broadcast(message=""):
         for client in ConnectionsManager.clients:
+            ConnectionsManager.sendTo(message,client=client)
+
+    def sendTo(message,idclient=None,client=None):
+        if client==None:
+            client=ConnectionsManager.getClientById(idclient)
+
+        if not client==None:
+            print("sendto : "+str(client.id)+ " - "+message)
             client.socket.sendall(message.encode("utf-8"))
