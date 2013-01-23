@@ -23,7 +23,10 @@ class ClientConnection(threading.Thread):
                     break
                 # something has been received !
                 # Route it now !
-                self.routeData(data.decode('utf8'))
+                dataList=data.decode('utf8').split("\n")
+                for d in dataList:
+                    if ""!=d:
+                        self.routeData(d)
             except socket.timeout:
                 break
             except socket.error:
@@ -50,7 +53,7 @@ class ClientConnection(threading.Thread):
                 print("no command : "+decodedJson)
             
         except ValueError:
-            print("not json")
+            print("not json : "+decodedData)
 
     # analyse the given command to make the associated action
     def routeCommand(self,command="",content=""):
