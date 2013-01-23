@@ -221,4 +221,5 @@ class ConnectionsManager(object):
 
         if client!=None and type(message)==str:
             print("sendto : "+str(client.id)+ " - "+message)
-            client.socket.sendall(message.encode("utf-8")+"\n")
+            message+="\n"
+            client.socket.sendall(message.encode("utf-8"))
