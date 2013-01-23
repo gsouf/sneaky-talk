@@ -112,13 +112,13 @@ class ClientConnection(threading.Thread):
     def sendMessage(self,message,senderId):
         message=Command.create(command=Command.WRITE,senderid=str(senderId),content=message)
         print("@"+str(self.id)+" "+message)
-        self.socket.sendall(message.encode('utf-8'))
+        ConnectionsManager.sendTo(message,client=self)
     #
     # /userslist [jsonized users] 
     # == send a json representation of the users logged in
     def sendList(self):
         message=Command.create(command=Command.USERLIST,users=ConnectionsManager.getJsonList())
-        self.socket.sendall(message.encode('utf-8'))
+        ConnectionsManager.sendTo(message,client=self)
     #
     # will change the name call sendRefresh for broadcasting the new name
     #
